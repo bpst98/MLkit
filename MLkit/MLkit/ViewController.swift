@@ -46,11 +46,39 @@ class ViewController: UIViewController ,UIImagePickerControllerDelegate,UINaviga
  
     func imageIdentify(image : UIImage){
         
-        guard let model = try? VNCoreMLModel(for: Resnet50().model) else {
+        guard let IdentificationModel = try? VNCoreMLModel(for: Resnet50().model) else {
             fatalError("Model Not Imported")
         }
+        let request = VNCoreMLRequest(model: IdentificationModel){
+            [weak self] request, error in
+            guard let results = request.results as? [VNClassificationObservation],
+            let firstResult = results.first
+                else{
+                    fatalError("NoResult obtained from VNCoreModelRequsest")
+                    
+            }
+            
+            
+            DispatchQueue.main.async {
+                self?.ImageDescription.text = "Confidence = \(Int(firstResult.confidence * 100))% \n IMage identified as : \(firstResult.identifier)"
+                
+            }
+            
+        }
         
+       guard let CIImage = CIImage(image: image) else {  fatalError("Cannot convert into CIImage") }
         
+        let imageHandler = VNImageRequestHandler(ciImage: CIImage)
+        
+        DispatchQueue.global(qos: .userInteractive).sync {
+            do{
+                try imageHandler.perform([request])
+                
+            }catch{
+                    print(print("ERROR\(error)"))
+                }
+            
+        }
     }
 }
 
